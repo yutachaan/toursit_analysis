@@ -7,7 +7,7 @@ h28_files = ["data/H28-{0}.xlsx".format(i) for i in range(1, 5)]
 h29_files = ["data/H29-{0}.xlsx".format(i) for i in range(1, 5)]
 
 def treat_files(files, sheet):
-    '''sheet1, 2, 4, 5の加工'''
+    """sheet1, 2, 4, 5の加工"""
 
     df = pd.DataFrame()
 
