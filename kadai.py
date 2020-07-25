@@ -1,4 +1,8 @@
 import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 h26_files = ["data/H26-{0}.xlsx".format(i) for i in range(1, 5)]
 h27_files = ["data/H27-{0}.xlsx".format(i) for i in range(1, 5)]
@@ -42,8 +46,8 @@ def process_files1(files):
     df.insert(1, "種類", "①")
     df["種類"] = df["種類"].where(df["客層"].str.contains("①"), "②")
     df = df.drop(columns='客層')
-    df.iloc[:, 2:10] = df.iloc[:, 2:10].astype(int)
     df = df.groupby(["都道府県", "種類"], as_index=False).sum()
+    df.iloc[:, 2:] = df.iloc[:, 2:].astype(int)
 
     return df
 
@@ -58,7 +62,7 @@ def process_files2(files):
         temp = pd.read_excel(file, sheet_name=4, skiprows=6, skipfooter=1, usecols=[0, 3, 4, 5, 6, 7, 8, 10], names=col_names, index_col=0)
         temp = temp.stack()
         temp.index.rename("目的", level=1, inplace=True)
-        temp.name = f'{i + 1}_地点数'
+        temp.name = i
         temp = temp.reset_index()
         if not sheet4.empty: sheet4 = pd.merge(sheet4, temp, on=["都道府県", "目的"], how="left")
         else: sheet4 = temp
@@ -77,7 +81,9 @@ def process_files2(files):
     df = pd.DataFrame()
     df = pd.merge(sheet4, sheet5, on=["都道府県", "目的"], how="left")
     df = df.dropna(how="any")
-    df.iloc[:, 2:10] = df.iloc[:, 2:10].astype(int)
+    df["地点数"] = df.iloc[:, 2:6].mean(axis=1)
+    df = df.drop(df.columns[2:6], axis=1)
+    df.iloc[:, 2:] = df.iloc[:, 2:].astype(int)
 
     return df
 
