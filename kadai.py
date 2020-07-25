@@ -1,8 +1,4 @@
 import pandas as pd
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-import matplotlib.pyplot as plt
 
 h26_files = ["data/H26-{0}.xlsx".format(i) for i in range(1, 5)]
 h27_files = ["data/H27-{0}.xlsx".format(i) for i in range(1, 5)]
@@ -81,9 +77,10 @@ def process_files2(files):
     df = pd.DataFrame()
     df = pd.merge(sheet4, sheet5, on=["都道府県", "目的"], how="left")
     df = df.dropna(how="any")
-    df["地点数"] = df.iloc[:, 2:6].mean(axis=1)
-    df = df.drop(df.columns[2:6], axis=1)
-    df.iloc[:, 2:] = df.iloc[:, 2:].astype(int)
+    df = df[df["目的"] != "その他"] # その他の行を削除
+    df["地点数"] = df.iloc[:, 2:6].mean(axis=1) #地点数はそれぞれの期間を平均したものとする
+    df = df.drop(df.columns[2:6], axis=1) #平均値以外の地点数の列を削除
+    # df.iloc[:, 2:] = df.iloc[:, 2:].astype(int)
 
     return df
 
@@ -102,7 +99,9 @@ h26_resorts = process_files2(h26_files)
 h27_resorts = process_files2(h27_files)
 h28_resorts = process_files2(h28_files)
 h29_resorts = process_files2(h29_files)
-h26_resorts.to_csv("data_after/resorts/h26.csv", index=False)
-h27_resorts.to_csv("data_after/resorts/h27.csv", index=False)
-h28_resorts.to_csv("data_after/resorts/h28.csv", index=False)
-h29_resorts.to_csv("data_after/resorts/h29.csv", index=False)
+resorts = pd.concat([h26_resorts, h27_resorts, h28_resorts, h29_resorts], ignore_index=True) #h26〜h29のデータを縦に結合
+resorts = resorts.sort_values(["都道府県", "目的"])
+mean = resorts.groupby(["都道府県", "目的"], as_index=False).mean()["地点数"] #各年の都道府県・目的地別の地点数の平均値を求める
+resorts = resorts.groupby(["都道府県", "目的"], as_index=False).sum() #各年の都道府県・目的別の客数の合計値を求める
+resorts["地点数"] = mean #resortsの地点数を上で求めた平均値に置換
+resorts.to_csv("data_after/resorts/resorts.csv", index=False)
