@@ -50,41 +50,40 @@ def process_files1(files):
 def process_files2(files):
     '''sheet4と5の加工'''
 
-    col_names = ["都道府県", "自然", "歴史・文化", "温泉・健康", "スポーツ・レク", "都市型観光", "その他", "イベント"]
+    col_names = ["都道府県", "自然", "歴史・文化", "温泉・健康", "スポーツ・レク", "都市型観光", "イベント"]
 
     sheet4 = pd.DataFrame()
+    use_cols_4 = [0, 3, 4, 5, 6, 7, 10]
 
     for(i, file) in enumerate(files):
-        temp = pd.read_excel(file, sheet_name=4, skiprows=6, skipfooter=1, usecols=[0, 3, 4, 5, 6, 7, 8, 10], names=col_names, index_col=0)
+        temp = pd.read_excel(file, sheet_name=4, skiprows=6, skipfooter=1, usecols=use_cols_4, names=col_names, index_col=0)
         temp = temp.stack()
         temp.index.rename("目的", level=1, inplace=True)
-        temp.name = i
+        temp.name = "地点数"
         temp = temp.reset_index()
-        if not sheet4.empty: sheet4 = pd.merge(sheet4, temp, on=["都道府県", "目的"], how="left")
+        if not sheet4.empty: sheet4 = pd.concat([sheet4, temp], ignore_index=True)
         else: sheet4 = temp
 
     sheet5 = pd.DataFrame()
+    use_cols_5 = [0, 3, 4, 5, 6, 7, 9]
 
     for(i, file) in enumerate(files):
-        temp = pd.read_excel(file, sheet_name=5, skiprows=6, skipfooter=1, usecols=[0, 3, 4, 5, 6, 7, 8, 9], names=col_names, index_col=0)
+        temp = pd.read_excel(file, sheet_name=5, skiprows=6, skipfooter=1, usecols=use_cols_5, names=col_names, index_col=0)
         temp = temp.stack()
         temp.index.rename("目的", level=1, inplace=True)
-        temp.name = f'{i + 1}_客数'
+        temp.name = "客数"
         temp = temp.reset_index()
-        if not sheet5.empty: sheet5 = pd.merge(sheet5, temp, on=["都道府県", "目的"], how="left")
+        if not sheet5.empty: sheet5 = pd.concat([sheet5, temp], ignore_index=True)
         else: sheet5 = temp
 
     df = pd.DataFrame()
-    df = pd.merge(sheet4, sheet5, on=["都道府県", "目的"], how="left")
+    df = pd.merge(sheet4, sheet5, left_index=True, right_index=True, on=["都道府県", "目的"], how="left")
     df = df.dropna(how="any")
-    df = df[df["目的"] != "その他"] # その他の行を削除
-    df["地点数"] = df.iloc[:, 2:6].mean(axis=1) #地点数はそれぞれの期間を平均したものとする
-    df = df.drop(df.columns[2:6], axis=1) #平均値以外の地点数の列を削除
-    # df.iloc[:, 2:] = df.iloc[:, 2:].astype(int)
+    df["都道府県"] = df["都道府県"].str[3:]
 
     return df
 
-#sheet1&sheet2
+# sheet1&sheet2
 h26_jp = process_files1(h26_files)
 h27_jp = process_files1(h27_files)
 h28_jp = process_files1(h28_files)
@@ -99,9 +98,5 @@ h26_resorts = process_files2(h26_files)
 h27_resorts = process_files2(h27_files)
 h28_resorts = process_files2(h28_files)
 h29_resorts = process_files2(h29_files)
-resorts = pd.concat([h26_resorts, h27_resorts, h28_resorts, h29_resorts], ignore_index=True) #h26〜h29のデータを縦に結合
-resorts = resorts.sort_values(["都道府県", "目的"])
-mean = resorts.groupby(["都道府県", "目的"], as_index=False).mean()["地点数"] #各年の都道府県・目的地別の地点数の平均値を求める
-resorts = resorts.groupby(["都道府県", "目的"], as_index=False).sum() #各年の都道府県・目的別の客数の合計値を求める
-resorts["地点数"] = mean #resortsの地点数を上で求めた平均値に置換
+resorts = pd.concat([h26_resorts, h27_resorts, h28_resorts, h29_resorts], ignore_index=True)
 resorts.to_csv("data_after/resorts/resorts.csv", index=False)
